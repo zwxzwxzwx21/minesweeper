@@ -17,7 +17,7 @@ time.sleep(0.2)
 win = pyautogui.getWindowsWithTitle('Minesweeper')[0]
 time.sleep(0.2)
 win.activate()
-time.sleep(0.2)
+time.sleep(1.5)
 win.moveTo(0, 0)
 
 # Definiowanie rozmiaru pola
@@ -36,6 +36,8 @@ def closest_color(pixel_color, colors):
     return closest_index
 
 def B_to_M(field,position_array,number_array):#changed b to mines
+    start_x = 15
+    start_y = 100
     numb = []  # this array have position of numbers that should be doubleclicked, meaning that there is enough mines around them and buttons that dont have mine
     for pos in position_array:
         field[pos[0]][pos[1]] = 'M'
@@ -56,10 +58,15 @@ def B_to_M(field,position_array,number_array):#changed b to mines
                     if bombs == int(field[pos[1]][pos[0]]):
                         if field[pos[1]+j][pos[0]+i] == 'B':
                             field[pos[1]+j][pos[0]+i] = 'E'
-                            move = (pos[1]+j,pos[0]+i)
+                            move = (pos[0]+i, pos[1]+j)
                             numb.append(move)
-    return field,numb
+    print(numb)
+    for pos in numb:
+        pyautogui.click(start_x + 7 + (pos[0])*16, start_y + 7 + (pos[1])*16)
+        print(f'pressing button {pos[1]} {pos[0]}')
+    return field
 def find_mines(field,pos_array):
+
     print('find_mines field:')
     pos = [] # array that will show position of buttons that have mines 100%
 
@@ -91,36 +98,14 @@ def find_mines(field,pos_array):
                             print(f' changing bomb to mine at position: {(position[1] + j)},{(position[0] + i)}')
                             move = ((position[1] + j),(position[0] + i))
                             pos.append(move)
-    new_board,pos_to_click = B_to_M(field,pos,pos_array)
+    new_board = B_to_M(field,pos,pos_array)
 
     for row in new_board:
         print(' '.join(row))
-    import pyautogui
-
-    for pos in pos_to_click:
-        x = start_x + 7 + pos[1] * 14
-        y = start_y + 7 + pos[0] * 14
-
-        # Press both left and right buttons down
-        pyautogui.mouseDown(x, y, button='left')
-        pyautogui.mouseDown(x, y, button='right')
-
-        # Release both buttons
-        pyautogui.mouseUp(x, y, button='left')
-        pyautogui.mouseUp(x, y, button='right')
-
-    '''for i in range(9):
-        for j in range(9):
-            if field[i][j].isdigit():'''
-
-
-    '''print(f'buttons around {position} {number_of_buttons}')'''
-    for row in field:
-        print(' '.join(row))
-
-
-
-def testing():
+    #testing()
+    #recursion(new_board)
+    return new_board
+def testing(field):
     global first_loop
     image_taken = 0 #check how many images button scrpit taken
     start_time = time.time()
@@ -131,7 +116,7 @@ def testing():
     start_x = 15
     start_y = 100
 
-    pyautogui.PAUSE = 0
+    pyautogui.PAUSE = 0                     #chagne if not testing #############################################################################################
     pyautogui.click(start_x + 72, start_y + 72)
 
     if test_image_grab:
@@ -172,10 +157,12 @@ def testing():
                 if (i,j) not in exclude_list:
                     color_B = screen.getpixel((start_x + 1 + i * 16, start_y + 3 + j * 16)) #button or blank
 
-                if color_B == (192, 192, 192):
-                    buttons[j][i] = ' ' # blank space
-                else:
+                    if color_B == (192, 192, 192):
+                        buttons[j][i] = ' ' # blank space
+                elif buttons[j][i] != ' ':
                     buttons[j][i] = 'B' #white - button
+                else:
+                    buttons[j][i] = ' '
                 if buttons[j][i] == ' ' and field[j][i] == 'B':
                     final_field[j][i] = ' '
                     move = (i, j)
@@ -188,6 +175,7 @@ def testing():
     if first_loop == 1:
         if image_taken == 80:
             print('bad seed, reset')
+
             return
     first_loop = 0
     print('done')
@@ -195,9 +183,11 @@ def testing():
     elapsed = end_time - start_time
     print(f'time: {elapsed:.4f}')
     sieved_field = find_mines(final_field,number_pos)
-
+    testing(sieved_field)
 #cProfile.run("testing()")
-testing()
+def recursion(field):
+    pass
+testing(field)
 '''arr = [(5, 0), (7, 0), (0, 1), (1, 1), (5, 1), (6, 1), (7, 1), (1, 2), (2, 2), (2, 3), (6, 3), (7, 3), (8, 3), (0, 4), (1, 4), (2, 4), (6, 4), (4, 5), (5, 5), (6, 5), (0, 6), (1, 6), (2, 6), (3, 6), (4, 6)]
 fld = [[' ', ' ', ' ', ' ', ' ', '1', 'B', '1', ' '],
        ['1', '1', ' ', ' ', ' ', '1', '1', '1', ' '],
@@ -208,5 +198,4 @@ fld = [[' ', ' ', ' ', ' ', ' ', '1', 'B', '1', ' '],
        ['1', '1', '1', '1', '3', 'B', 'B', 'B', 'B'],
        ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'],
        ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B']]
-find_mines(fld,arr)
-'''
+find_mines(fld,arr)'''
