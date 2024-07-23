@@ -4,30 +4,55 @@ from matplotlib import pyplot as plt
 import subprocess
 import time
 import numpy as np
-import cProfile
-# Zamknięcie istniejących okien Minesweeper
+import random
+import pyautogui
+
+'''
+
+def get_pixel_color_and_position():
+    # Pobranie aktualnej pozycji kursora
+    x, y = pyautogui.position()
+
+    # Zrobienie zrzutu ekranu wokół kursora
+    screenshot = ImageGrab.grab(bbox=(x, y, x + 1, y + 1))
+
+    # Pobranie koloru piksela
+    pixel_color = screenshot.getpixel((0, 0))
+
+    return x, y, pixel_color
+
+
+# Sprawdzenie koloru piksela pod kursorem
+while True:
+    x, y, color = get_pixel_color_and_position()
+    print(f"Koordynaty piksela: ({x}, {y})")
+    print(f"Kolor piksela: {color}")'''
+
+# Close existing Minesweeper windows
 windows = pyautogui.getWindowsWithTitle('Minesweeper')
 if windows:
     for win in windows:
         win.close()
 
-# Uruchomienie nowej instancji Minesweeper
+# Launch a new instance of Minesweeper
 subprocess.Popen(["C:\\Users\\alexx\\Desktop\\Minesweeper-Windows-XP\\WINMINE.exe"])
 time.sleep(0.2)
 win = pyautogui.getWindowsWithTitle('Minesweeper')[0]
 time.sleep(0.2)
 win.activate()
-time.sleep(1.5)
+time.sleep(1)
 win.moveTo(0, 0)
 
-# Definiowanie rozmiaru pola
+# Define the field size
 global first_loop
 first_loop = 1
-field = [['' for i in range(9)] for i in range(9)]
-buttons = [['' for i in range(9)] for i in range(9)] # this one checks if button is blank or not pressed
-final_field = [['' for i in range(9)] for i in range(9)]
+field = [['' for i in range(30)] for i in range(16)]
+buttons = [['' for i in range(30)] for i in range(16)]
+final_field = [['' for i in range(30)] for i in range(16)]
 number_pos = []
-exclude_list = [] #list that excludes certain field from checking, basically position of all blanks
+exclude_list = []
+
+
 def closest_color(pixel_color, colors):
     colors = np.array(colors)
     pixel_color = np.array(pixel_color)
@@ -35,132 +60,140 @@ def closest_color(pixel_color, colors):
     closest_index = np.argmin(distances)
     return closest_index
 
-def B_to_M(field,position_array,number_array):#changed b to mines
+
+def B_to_M(field, position_array, number_array):
     start_x = 15
     start_y = 100
-    numb = []  # this array have position of numbers that should be doubleclicked, meaning that there is enough mines around them and buttons that dont have mine
+    numb = []
     for pos in position_array:
         field[pos[0]][pos[1]] = 'M'
-    #check for obvious free spaces and make a button press if
     for pos in number_array:
-        bombs = 0 # how many mines are around number
+        bombs = 0
         for i in range(-1, 2):
             for j in range(-1, 2):
-                # print(f'testtest {position[0]+i } {position[1]+j }')
-                if -1 < pos[0] + i < 9 and -1 < pos[1] + j < 9:
-                    # print(f'testinside {position[0] + i} {position[1] + j}')
-
+                if -1 < pos[0] + i < 30 and -1 < pos[1] + j < 16:
                     if field[pos[1] + j][pos[0] + i] == 'M':
                         bombs += 1
         for i in range(-1, 2):
             for j in range(-1, 2):
-                if -1 < pos[0] + i < 9 and -1 < pos[1] + j < 9:
+                if -1 < pos[0] + i < 30 and -1 < pos[1] + j < 16:
                     if bombs == int(field[pos[1]][pos[0]]):
-                        if field[pos[1]+j][pos[0]+i] == 'B':
-                            field[pos[1]+j][pos[0]+i] = 'E'
-                            move = (pos[0]+i, pos[1]+j)
+                        if field[pos[1] + j][pos[0] + i] == 'B':
+                            field[pos[1] + j][pos[0] + i] = 'E'
+                            move = (pos[0] + i, pos[1] + j)
                             numb.append(move)
     print(numb)
     for pos in numb:
-        pyautogui.click(start_x + 7 + (pos[0])*16, start_y + 7 + (pos[1])*16)
+        pyautogui.click(start_x + 7 + (pos[0]) * 16, start_y + 7 + (pos[1]) * 16)
         print(f'pressing button {pos[1]} {pos[0]}')
     return field
-def find_mines(field,pos_array):
 
+def nums_to_blank(field,pos):
+    for p in pos:
+        field[p[0]][p[1]] = ' '
+    return field
+
+def divide_in_groups(positions):
+    groups = []
+    for pos in positions:
+        added_to_group = False
+        for group in groups:
+            for group_pos in group:
+                if abs(pos[0] - group_pos[0]) <= 2 and abs(pos[1] - group_pos[1]) <= 2:
+                    group.append(pos)
+                    added_to_group = True
+                    break
+            if added_to_group:
+                break
+        if not added_to_group:
+            groups.append([pos])
+    print(f' groups: {groups}')
+    return groups
+
+def pos_of_numbers(field):
+    pos = []
+    for i in range(16):
+        for j in range(30):
+            if field[i][j] == '1' or field[i][j] == '2' or field[i][j] == '3' or field[i][j] == '4' or field[i][j] == '5' or field[i][j] == '6' or field[i][j] == '7':
+                move = (j, i)
+                pos.append(move)
+    return pos
+
+def find_mines(field, pos_array):
     print('find_mines field:')
-    pos = [] # array that will show position of buttons that have mines 100%
-
+    pos = []
+    full_nums = []
     for row in field:
         print(' '.join(row))
     for position in pos_array:
-        numb_of_bombs = 0 # number of bombs surrounding certain number
-        #print(pos_array, 'cur pos', position)
-        #number_of_buttons = 0 #number of bombs around current number
-        for i in range(-1,2):
-            for j in range(-1,2):
-                #print(f'testtest {position[0]+i } {position[1]+j }')
-                if -1 < position[0]+i < 9 and -1 < position[1]+j < 9:
-                    #print(f'testinside {position[0] + i} {position[1] + j}')
-
-                    if field[position[1]+j][position[0]+i] == 'B':
+        numb_of_bombs = 0
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                if -1 < position[0] + i < 30 and -1 < position[1] + j < 16:
+                    if field[position[1] + j][position[0] + i] == 'B':
                         numb_of_bombs += 1
-        #print(type(field[position[1]][position[0]],'int test'))
-        #print(int(field[position[1]][position[0]]),'int test')
-        print(f'numb of bombs = {numb_of_bombs}  for pos {position} int = {int(field[position[1]][position[0]])}')
         if numb_of_bombs == int(field[position[1]][position[0]]):
             for i in range(-1, 2):
                 for j in range(-1, 2):
-                    # print(f'testtest {position[0]+i } {position[1]+j }')
-                    if -1 < position[0] + i < 9 and -1 < position[1] + j < 9:
-                        # print(f'testinside {position[0] + i} {position[1] + j}')
-
+                    if -1 < position[0] + i < 30 and -1 < position[1] + j < 16:
                         if field[position[1] + j][position[0] + i] == 'B':
-                            print(f' changing bomb to mine at position: {(position[1] + j)},{(position[0] + i)}')
-                            move = ((position[1] + j),(position[0] + i))
+                            move = ((position[1] + j), (position[0] + i))
                             pos.append(move)
-    new_board = B_to_M(field,pos,pos_array)
-
+                            move2 = ((position[1]), (position[0]))
+                            full_nums.append(move2)
+    ne_board = B_to_M(field, pos, pos_array)
+    new_board = nums_to_blank(ne_board, full_nums)
+    print('new board ')
     for row in new_board:
         print(' '.join(row))
-    #testing()
-    #recursion(new_board)
+    numbs = pos_of_numbers(field)
+    group_array = divide_in_groups(numbs)
+
     return new_board
+
+
+def random_press(field):
+    start_x = 15
+    start_y = 100
+    B_positions = [(j, i) for i in range(30) for j in range(16) if field[j][i] == 'B']
+    if B_positions:
+        pos = random.choice(B_positions)
+        pyautogui.click(start_x + 7 + (pos[1]) * 16, start_y + 7 + (pos[0]) * 16)
+        field[pos[0]][pos[1]] = 'E'  # Mark as explored
+    return field
+
+
 def testing(field):
     global first_loop
-    image_taken = 0 #check how many images button scrpit taken
-    start_time = time.time()
-    print('start')
-    colors = [(192, 192, 192), (0, 0, 255), (0, 128, 0), (255, 0, 0), (0, 0, 128), (0, 0, 128), (0, 128, 128)]
-    numbers = ['B', '1', '2', '3', '4', '5', '6',]
+    image_taken = 0
+    colors = [(192, 192, 192), (0, 0, 255), (0, 128, 0), (255, 0, 0), (0, 0, 128), (128, 0, 0), (0, 128, 128)]
+    numbers = ['B', '1', '2', '3', '4', '5', '6']
     test_image_grab = False
     start_x = 15
     start_y = 100
 
-    pyautogui.PAUSE = 0                     #chagne if not testing #############################################################################################
-    pyautogui.click(start_x + 72, start_y + 72)
-
-    if test_image_grab:
-        screenshot = ImageGrab.grab(bbox=(start_x, start_y, start_x + 144, start_y + 144))  # 14,4px
-        draw = ImageDraw.Draw(screenshot)
-        for i in range(9):
-            for j in range(9):
-                draw.point((7 + i * 16, 9 + j * 16), fill='black')
-        plt.imshow(screenshot)
-        plt.axis('on')
-        plt.show()
-        #screenshot to sdistinguish buttons froms blanks
-        screenshot2 = ImageGrab.grab(bbox=(start_x, start_y, start_x + 144, start_y + 144))  # 14,4px
-        draw = ImageDraw.Draw(screenshot2)
-        for i in range(9):
-            for j in range(9):
-                draw.point((1 + i * 16, 3 + j * 16), fill='black')
-        plt.imshow(screenshot2)
-        plt.axis('on')
-        plt.show()
+    pyautogui.PAUSE = 0
+    pyautogui.click(start_x + 16 * 15 + 7, start_y + 8 * 16 + 7)
 
     screen = ImageGrab.grab()
 
-
-    for j in range(9):
-        for i in range(9):
+    for j in range(16):
+        for i in range(30):
             color = screen.getpixel((start_x + 7 + i * 16, start_y + 9 + j * 16))
             closest_index = closest_color(color, colors)
             field[j][i] = numbers[closest_index]
             final_field[j][i] = numbers[closest_index]
             if numbers[closest_index] != 'B':
-                print(f'position of number = {i,j}', numbers[closest_index])
-                move = (i,j)
+                move = (i, j)
                 if move not in number_pos:
                     number_pos.append(move)
             if field[j][i] == 'B':
-                #print( (i,j),exclude_list,'testexclude')
-                if (i,j) not in exclude_list:
-                    color_B = screen.getpixel((start_x + 1 + i * 16, start_y + 3 + j * 16)) #button or blank
-
+                if (i, j) not in exclude_list:
+                    color_B = screen.getpixel((start_x + 1 + i * 16, start_y + 3 + j * 16))
                     if color_B == (192, 192, 192):
-                        buttons[j][i] = ' ' # blank space
+                        buttons[j][i] = ' '
                 elif buttons[j][i] != ' ':
-                    buttons[j][i] = 'B' #white - button
+                    buttons[j][i] = 'B'
                 else:
                     buttons[j][i] = ' '
                 if buttons[j][i] == ' ' and field[j][i] == 'B':
@@ -169,33 +202,60 @@ def testing(field):
                     exclude_list.append(move)
                 image_taken += 1
     for row in final_field:
-        print('|'.join(row))
+            print('|'.join(row))
     print(final_field)
     print('images taken:', image_taken)
-    if first_loop == 1:
-        if image_taken == 80:
-            print('bad seed, reset')
-
-            return
+    if first_loop == 1 and image_taken == 80:
+        return
     first_loop = 0
-    print('done')
-    end_time = time.time()
-    elapsed = end_time - start_time
-    print(f'time: {elapsed:.4f}')
-    sieved_field = find_mines(final_field,number_pos)
+    ###
+    color = screen.getpixel((259, 78))
+    if color == (0,0,0):
+        reset()
+    sieved_field = find_mines(final_field, number_pos)
+    for row in sieved_field:
+        print(' '.join(row))
+    # Check if there are no more moves and make a random press
+    if sieved_field == field:
+        #sieved_field = random_press(sieved_field)
+        all_loops = [0 for i in range(30) for i in range(16)]
+        possible_mines = [0 for i in range(30) for i in range(16)]
+        if image_taken < 479:
+            pass
+
+
     testing(sieved_field)
-#cProfile.run("testing()")
-def recursion(field):
+def reset():
     pass
+    '''pyautogui.moveTo(20, 700)
+    pyautogui.click()
+    pyautogui.hotkey('shift', 'f10')'''
+
+
+'''import pyautogui
+from PIL import ImageGrab
+
+
+def get_pixel_color_and_position():
+    # Pobranie aktualnej pozycji kursora
+    x, y = pyautogui.position()
+
+    # Zrobienie zrzutu ekranu wokół kursora
+    screenshot = ImageGrab.grab(bbox=(x, y, x + 1, y + 1))
+
+
+    # Pobranie koloru piksela
+    pixel_color = screenshot.getpixel((0, 0))
+
+    return x, y, pixel_color
+
+
+# Sprawdzenie koloru piksela pod kursorem
+while True:
+    x, y, color = get_pixel_color_and_position()
+    print(f"Koordynaty piksela: ({x}, {y})")
+    print(f"Kolor piksela: {color}")'''
+
 testing(field)
-'''arr = [(5, 0), (7, 0), (0, 1), (1, 1), (5, 1), (6, 1), (7, 1), (1, 2), (2, 2), (2, 3), (6, 3), (7, 3), (8, 3), (0, 4), (1, 4), (2, 4), (6, 4), (4, 5), (5, 5), (6, 5), (0, 6), (1, 6), (2, 6), (3, 6), (4, 6)]
-fld = [[' ', ' ', ' ', ' ', ' ', '1', 'B', '1', ' '],
-       ['1', '1', ' ', ' ', ' ', '1', '1', '1', ' '],
-       ['B', '2', '1', ' ', ' ', ' ', ' ', ' ', ' '],
-       ['B', 'B', '1', ' ', ' ', ' ', '1', '1', '1'],
-       ['1', '1', '1', ' ', ' ', ' ', '1', 'B', 'B'],
-       [' ', ' ', ' ', ' ', '1', '2', '3', 'B', 'B'],
-       ['1', '1', '1', '1', '3', 'B', 'B', 'B', 'B'],
-       ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'],
-       ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B']]
-find_mines(fld,arr)'''
+'''[['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '3', '2', '1', '2', '1', '1', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '3', '2', '1', '2', 'B', 'B', '1', ' ', ' ', ' ', '1', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '3', '2', 'B', '2', '2', '4', '4', '4', '2', '1', '1', '1', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', '2', '2', '2', 'B', 'B', 'B', '2', 'B', '2', '2', 'B', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', 'B', '1', '1', '2', '3', '2', '2', '2', 'B', '2', '1', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '3', '2', '1', ' ', ' ', ' ', ' ', ' ', '1', '2', '2', '1', '1', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '2', 'B', 'B', 'B', 'B', '3', 'B', '1', ' ', ' ', ' ', ' ', '1', '2', '2', '2', 'B', '3', '3', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '2', '2', '4', '4', '3', '2', '1', '1', ' ', '1', '2', '2', '2', 'B', 'B', '2', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '1', ' ', '1', 'B', '2', '2', '2', '1', ' ', '1', 'B', 'B', '3', '3', '2', '2', '2', '4', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '1', ' ', '1', '2', '3', 'B', 'B', '1', '1', '2', '3', '3', 'B', '2', '1', '2', 'B', '3', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '2', '1', '1', '2', 'B', '4', '2', '1', '1', 'B', '1', '1', '1', '3', 'B', '3', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '2', 'B', '1', '2', 'B', '2', ' ', ' ', '1', '1', '1', ' ', ' ', '2', 'B', '3', '2', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '2', '1', '1', '1', '1', '1', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '1', '2', 'B', '1', '1', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B']]'''
+'''[['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', '1', '1', '1', '1', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '1', ' ', ' ', ' ', '1', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', '1', ' ', '1', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '1', '1', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '4', '2', '2', 'B', '4', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B']]'''
