@@ -237,14 +237,14 @@ def fun_bruteforcer(field,array,groups):
             if move not in pos_of_b:
                 pos_of_b.append(move)
         print(pos_of_b,'pos of b bbb')
-        for pos in pos_of_b:
-            print(pos,'current pos bruteforcing')
-            #print(pos,'brutefrocer running')
-            if field[pos[1]][pos[0]] == 'B':
-                print('found b at pos ',pos[0],' ',pos[1])
-                if pos not in final_pos_of_b:
-                    final_pos_of_b.append(pos)
-                    print('appending',pos)
+        for posit in pos_of_b:
+            print(posit,'current pos bruteforcing')
+
+            if field[posit[1]][posit[0]] == 'B':
+                print('found b at pos ',posit[0],' ',posit[1])
+                if posit not in final_pos_of_b:
+                    final_pos_of_b.append(posit)
+                    print('appending',posit)
         print(final_pos_of_b,'final pos b')
         for i in range(16):
             for j in range(30):
@@ -264,13 +264,13 @@ def fun_bruteforcer(field,array,groups):
     print('positions in pos tosdjfgkljsfn')
 
 
-    lista = full_numbers(field)
+    '''lista = full_numbers(field)
     #print(lista,'list')
 
     if len(lista) > 0:
         field_b_no_numbs = nums_to_blank(groups,lista)
 
-        fin_field = irrelevant_b(field_b_no_numbs)
+        fin_field = irrelevant_b(field_b_no_numbs)'''
     #print(len(groups))
     #print((groups))
     combinations = list(itertools.product(['B', 'M'], repeat=len(final_pos_of_b)))
@@ -289,7 +289,7 @@ def fun_bruteforcer(field,array,groups):
                 new_field[pos[1]][pos[0]] = value
 
         all_boards.append(new_field)
-    print('validating')
+    print('validating',array)
     booard = validate_boards(all_boards,array)
     percentage_field  = check_percent(booard)
     min_percentage, min_pos = float('inf'), None
