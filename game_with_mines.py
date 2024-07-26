@@ -161,11 +161,12 @@ def find_mines(field, pos_array):
 
 
 def irrelevant_b(field):
+    numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
     pos = []
     for i in range(16):
         for j in range(30):
-            # for row in field:
-            # print(' '.join(str(row)))
+            #print('irrelevant b field')
+
             if field[i][j] in numbers:
                 for x in range(-1, 2):
                     for y in range(-1, 2):
@@ -173,6 +174,7 @@ def irrelevant_b(field):
                             if field[i + x][j + y] == 'B':
                                 p = (i + x, j + y)
                                 pos.append(p)
+    #print('positions of numbers',pos)
     for i in range(16):
         for j in range(30):
             if field[i][j] == 'B' and (i, j) not in pos:
@@ -180,6 +182,7 @@ def irrelevant_b(field):
 
     return field
 def full_numbers(field):
+    numbers = ['1','2','3','4','5','6']
     pos = []
     for i in range(16):
         for j in range(30):
@@ -204,16 +207,20 @@ def random_press(field):
         field[pos[0]][pos[1]] = 'E'  # Mark as explored
     return field
 
-def fun_bruteforcer(field,array):
+def fun_bruteforcer(field,array,groups):
+    copy_field = copy.deepcopy(field)
     print(array,'array in funbruterw')
     print('fun broteforcer starts')
+    numbs = full_numbers(field)
+    field = nums_to_blank(field,numbs)
+    #field = irrelevant_b(field)
     for row in field:
         print(' '.join(row))
     all_boards = []
     pos_of_b = []
     final_pos_of_b = []
     groups_of_b = []
-    print(array,'array')
+    print(array,'array') # placement of all numbers
     for pos in array:
 
         positions = [
@@ -229,13 +236,34 @@ def fun_bruteforcer(field,array):
         for move in positions:
             if move not in pos_of_b:
                 pos_of_b.append(move)
+        print(pos_of_b,'pos of b bbb')
         for pos in pos_of_b:
+            print(pos,'current pos bruteforcing')
             #print(pos,'brutefrocer running')
             if field[pos[1]][pos[0]] == 'B':
+                print('found b at pos ',pos[0],' ',pos[1])
                 if pos not in final_pos_of_b:
                     final_pos_of_b.append(pos)
+                    print('appending',pos)
         print(final_pos_of_b,'final pos b')
+        for i in range(16):
+            for j in range(30):
+                #print(array,final_pos_of_b)
+                #print((j,i),'j,i')
+                if (j, i) not in array and (j, i) not in final_pos_of_b and (j, i) not in pos_of_b:
+                    copy_field[i][j] = ' '
+        print('edited field for group')
+        for row in copy_field:
+            print(' '.join(row))
+        if len(final_pos_of_b) > 14:
+            print('group too long, to much to compute, resetting')
+            time.sleep(0.5)
+            reset()
         groups_of_b.append([final_pos_of_b])
+    #remove irrelevan b
+    print('positions in pos tosdjfgkljsfn')
+
+
     lista = full_numbers(field)
     #print(lista,'list')
 
@@ -262,7 +290,7 @@ def fun_bruteforcer(field,array):
 
         all_boards.append(new_field)
     print('validating')
-    booard = validate_boards(all_boards)
+    booard = validate_boards(all_boards,array)
     percentage_field  = check_percent(booard)
     min_percentage, min_pos = float('inf'), None
     for y in range(len(percentage_field)):
@@ -270,11 +298,13 @@ def fun_bruteforcer(field,array):
             if 0 < percentage_field[y][x] < min_percentage:  # Ignore zeroes as they can't be valid moves
                 min_percentage = percentage_field[y][x]
                 #print('positions ',(x*16+8, y*16+8))
-                min_pos = (x*16+8, y*16+8)
-                pyautogui.click(min_pos)
+
+                print('making button press after calculation on pos: ',min_pos)
+                pyautogui.click(15 + x*16+8,100 + y*16+8)
 
 
 def check_percent(boards):
+    print('num of boards:', len(boards))
     num_boards = len(boards)
     #num_rows = len(boards[0])
     #num_cols = len(boards[0][0])
@@ -290,31 +320,39 @@ def check_percent(boards):
     return new_field
 
 
-def validate_boards(board_array):
+def validate_boards(board_array,pos): # position on numbers to check
     good_boards = []
 
     numbers = ['1', '2', '3', '4', '5', '6']
     print(len(board_array), 'boards')
+    '''for board in board_array:
+        for row in board:
+            print(' '.join(row))
+        print()'''
     for board in board_array:
         is_good = True
         # print(len(field),len(field[0]))
-        for y in range(len(field)):
-            for x in range(len(field[0])):
+        for y in range(16):
+            for x in range(30):
 
                 if board[y][x] in numbers:
-                    bomb_numb = 0
+                    if (x,y) in pos:
 
-                    for i in range(-1, 2):
-                        for j in range(-1, 2):
-                            if 0 <= y + i < len(board) and 0 <= x + j < len(board[0]):
-                                # print('step 3')
-                                if board[y + i][x + j] == 'M':
-                                    bomb_numb += 1
-                                    # print('bomb numb up: ', bomb_numb)
-                    # print(bomb_numb,int(board[y][x]),'testwazne')
-                    if bomb_numb != int(board[y][x]):
-                        is_good = False
-                        break
+                        bomb_numb = 0
+
+                        for i in range(-1, 2):
+                            for j in range(-1, 2):
+                                if 0 <= y + i < len(board) and 0 <= x + j < len(board[0]):
+                                    #print('step 3')
+                                    if board[y + i][x + j] == 'M':
+                                        bomb_numb += 1
+                                        #print('bomb up +1')
+                                        # print('bomb numb up: ', bomb_numb)
+                        #print(bomb_numb,int(board[y][x]),'testwazne')
+                        if bomb_numb != int(board[y][x]):
+                            is_good = False
+                            break
+
             if not is_good:
                 break
         if is_good:
@@ -372,6 +410,8 @@ def testing(field):
     ###
     color = screen.getpixel((259, 78))
     if color == (0,0,0):
+        print('lost, reseting')
+        time.sleep(0.4)
         reset()
     sieved_field,group_array,full_n = find_mines(final_field, number_pos)
     for row in sieved_field:
@@ -381,15 +421,30 @@ def testing(field):
 
     # Check if there are no more moves and make a random press
     if sieved_field == field:
+        #print('cant do much more')
         pos_of_numbs = pos_of_numbers(field)
+        print('pos of numbers:', pos_of_numbs)
         groups = divide_in_groups(pos_of_numbs)
+        print('groups:', groups)
         full_num = full_numbers(field)
+        print('full_num:', full_num)
         field_no_numbs = nums_to_blank(field, full_num)
+        print('field_no_numbs:')
+        for row in field_no_numbs:
+            print(' '.join(row))
         field_no_B = irrelevant_b(field_no_numbs)
+        print('field_no_B:')
+        for row in field_no_B:
+            print(' '.join(row))
         print(group_array, 'group array')
         print(groups,',groups')
-        for group in groups:
-            bruteforced_move = fun_bruteforcer(field_no_B, group)
+        if len(groups) == 1 and len(groups[0]) == 2:
+            print('too short groups, resetting')
+            time.sleep(0.5)
+            reset()
+        else:
+            for group in groups:
+                bruteforced_move = fun_bruteforcer(field_no_B, group,groups)
         #sieved_field = random_press(sieved_field)
         all_loops = [0 for i in range(30) for i in range(16)]
         possible_mines = [0 for i in range(30) for i in range(16)]
@@ -399,6 +454,7 @@ def testing(field):
 
     testing(sieved_field)
 def reset():
+    print('resetting')
 
     pyautogui.moveTo(20, 700)
     pyautogui.click()
