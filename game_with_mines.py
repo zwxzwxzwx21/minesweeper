@@ -61,7 +61,6 @@ def closest_color(pixel_color, colors):
     closest_index = np.argmin(distances)
     return closest_index
 
-
 def B_to_M(field, position_array, number_array):
     start_x = 15
     start_y = 100
@@ -80,6 +79,7 @@ def B_to_M(field, position_array, number_array):
                 if -1 < pos[0] + i < 30 and -1 < pos[1] + j < 16:
                     if bombs == int(field[pos[1]][pos[0]]):
                         if field[pos[1] + j][pos[0] + i] == 'B':
+                            pyautogui.click(start_x + pos[1]+j*16+8, start_y + pos[0]+i*16+8)
                             field[pos[1] + j][pos[0] + i] = 'E'
                             move = (pos[0] + i, pos[1] + j)
                             numb.append(move)
@@ -89,12 +89,11 @@ def B_to_M(field, position_array, number_array):
         print(f'pressing button {pos[1]} {pos[0]}')
     return field
 
-def nums_to_blank(field,pos):
-
+def nums_to_blank(field, pos):
     for p in pos:
-        #print(p)
-        #print(p[0])
-        #print(p[1])
+        print(p)
+        print(p[0])
+        print(p[1])
         field[p[0]][p[1]] = ' '
         print('numbs to blank')
         for row in field:
@@ -159,7 +158,6 @@ def find_mines(field, pos_array):
 
     return new_board,group_array,full_nums
 
-
 def irrelevant_b(field):
     numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
     pos = []
@@ -181,48 +179,47 @@ def irrelevant_b(field):
                 field[i][j] = ' '
 
     return field
-def full_numbers(field):
-    numbers = ['1','2','3','4','5','6']
-    pos = []
-    for i in range(16):
-        for j in range(30):
-            numb= 0
-            if field[i][j] in numbers:
-                for x in range(-1,2):
-                    for y in range(-1,2):
-                        if -1<i+2<9 and -1<j+y<9:
-                            if field[i+x][j+y] == 'M':
-                                numb +=1
-                if numb == int(field[i][j]):
-                    p = (j,i)
-                    pos.append(p)
-    return pos
-def random_press(field):
-    start_x = 15
-    start_y = 100
-    B_positions = [(j, i) for i in range(30) for j in range(16) if field[j][i] == 'B']
-    if B_positions:
-        pos = random.choice(B_positions)
-        pyautogui.click(start_x + 7 + (pos[1]) * 16, start_y + 7 + (pos[0]) * 16)
-        field[pos[0]][pos[1]] = 'E'  # Mark as explored
-    return field
 
-def fun_bruteforcer(field,array,groups):
+def full_numbers(field):
+    numbers = ['1', '2', '3', '4', '5', '6']
+    pos = []
+    for yy in range(16):
+        for xx in range(30):
+            numb = 0
+
+            if field[yy][xx] in numbers:
+                #print('found numbner at position ' + str(yy) + ',' + str(xx))
+                for x in range(-1, 2):
+                    for y in range(-1, 2):
+                        if -1 < yy + 2 < 16 and -1 < xx + 2 < 30:
+                            #print('past if statement 1')
+                            if field[yy + y][xx + x] == 'M':
+                                print(f'found bomb at position ' + str(xx+x) + ',' + str(yy+y), f'for x ={x}, y={y}, yy={yy} xx={xx}')
+                                numb += 1
+                if numb == int(field[yy][xx]):
+                    p = (xx, yy)
+                    pos.append(p)
+    print(pos,'full number pos')
+    return pos  ## WORKING
+
+def fun_bruteforcer(field, array, groups):
     copy_field = copy.deepcopy(field)
-    print(array,'array in funbruterw')
-    print('fun broteforcer starts')
+    print(array, 'array in funbruteforcer')
+    print('fun bruteforcer starts')
+
     numbs = full_numbers(field)
-    field = nums_to_blank(field,numbs)
-    #field = irrelevant_b(field)
+    field = nums_to_blank(field, numbs)
+    # field = irrelevant_b(field)
     for row in field:
         print(' '.join(row))
+
     all_boards = []
     pos_of_b = []
     final_pos_of_b = []
     groups_of_b = []
-    print(array,'array') # placement of all numbers
-    for pos in array:
+    print(array, 'array')  # placement of all numbers
 
+    for pos in array:
         positions = [
             (pos[0] + 1, pos[1] - 1),
             (pos[0] + 1, pos[1]),
@@ -233,48 +230,51 @@ def fun_bruteforcer(field,array,groups):
             (pos[0] - 1, pos[1] - 1),
             (pos[0] - 1, pos[1] + 1)
         ]
+
         for move in positions:
             if move not in pos_of_b:
                 pos_of_b.append(move)
-        print(pos_of_b,'pos of b bbb')
-        for posit in pos_of_b:
-            print(posit,'current pos bruteforcing')
 
-            if field[posit[1]][posit[0]] == 'B':
-                print('found b at pos ',posit[0],' ',posit[1])
+        print(pos_of_b, 'pos of b bbb')
+        for posit in pos_of_b:
+            print(posit, 'current pos bruteforcing')
+            if field[posit[1]][posit[0]] == 'B': # posit[1] out of range cuz no B generates?
+                print('found b at pos ', posit[0], ' ', posit[1])
                 if posit not in final_pos_of_b:
                     final_pos_of_b.append(posit)
-                    print('appending',posit)
-        print(final_pos_of_b,'final pos b')
+                    print('appending', posit)
+
+        print(final_pos_of_b, 'final pos b')
+        
+        # Fix the indexing and condition
         for i in range(16):
             for j in range(30):
-                #print(array,final_pos_of_b)
-                #print((j,i),'j,i')
-                if (j, i) not in array and (j, i) not in final_pos_of_b and (j, i) not in pos_of_b:
+                if (j,i) in array:
+                    print((f' j,i {(j,i)}, array: {array}'))
+                if (i,j) in final_pos_of_b:
+                    print((f' j,i {(j,i)}, final pos of  b: {final_pos_of_b}'))
+                if (j,i) in pos_of_b:
+                    print((f' j,i {(j,i)}, pos of b: {pos_of_b}'))
+                if (j, i) not in array and (j, i) not in final_pos_of_b and (j, i) not in pos_of_b: ###polay around wiht (j,i) ig original was (j, i) (i, j) (i, j)
                     copy_field[i][j] = ' '
+
         print('edited field for group')
         for row in copy_field:
             print(' '.join(row))
-        if len(final_pos_of_b) > 14:
-            print('group too long, to much to compute, resetting')
+
+        if len(final_pos_of_b) > 16:
+            print('group too long, too much to compute, resetting')
             time.sleep(0.5)
             reset()
+
         groups_of_b.append([final_pos_of_b])
-    #remove irrelevan b
+
     print('positions in pos tosdjfgkljsfn')
 
 
-    '''lista = full_numbers(field)
-    #print(lista,'list')
 
-    if len(lista) > 0:
-        field_b_no_numbs = nums_to_blank(groups,lista)
-
-        fin_field = irrelevant_b(field_b_no_numbs)'''
-    #print(len(groups))
-    #print((groups))
     combinations = list(itertools.product(['B', 'M'], repeat=len(final_pos_of_b)))
-    #print(len(combinations),'combinations')
+
     z = 0
     for combination in combinations:
 
@@ -302,7 +302,6 @@ def fun_bruteforcer(field,array,groups):
                 print('making button press after calculation on pos: ',min_pos)
                 pyautogui.click(15 + x*16+8,100 + y*16+8)
 
-
 def check_percent(boards):
     print('num of boards:', len(boards))
     num_boards = len(boards)
@@ -316,9 +315,10 @@ def check_percent(boards):
             num_mines = sum(1 for board in boards if board[j][i] == 'M')
 
             new_field[j][i] = ((num_mines / num_boards) * 100)
-
+    '''for row in new_field:
+        print(' '.join(str(row)))
+    time.sleep(2)'''
     return new_field
-
 
 def validate_boards(board_array,pos): # position on numbers to check
     good_boards = []
@@ -361,7 +361,6 @@ def validate_boards(board_array,pos): # position on numbers to check
     # print(good_boards)
     return good_boards
 
-
 def testing(field):
     global first_loop
     image_taken = 0
@@ -374,7 +373,7 @@ def testing(field):
     pyautogui.PAUSE = 0
     pyautogui.click(start_x + 16 * 15 + 7, start_y + 8 * 16 + 7)
 
-    screen = ImageGrab.grab()
+    screen = ImageGrab.grab()   #image grav one pixel insteead of entire screen
 
     for j in range(16):
         for i in range(30):
@@ -438,13 +437,17 @@ def testing(field):
             print(' '.join(row))
         print(group_array, 'group array')
         print(groups,',groups')
-        if len(groups) == 1 and len(groups[0]) == 2:
+        '''if len(groups) == 1 and len(groups[0]) == 2:
+            
             print('too short groups, resetting')
             time.sleep(0.5)
             reset()
         else:
-            for group in groups:
-                bruteforced_move = fun_bruteforcer(field_no_B, group,groups)
+            '''
+        for group in groups:
+            print((field_no_B, group, groups), 'stuff to copy')
+
+            bruteforced_move = fun_bruteforcer(field_no_B, group,groups)
         #sieved_field = random_press(sieved_field)
         all_loops = [0 for i in range(30) for i in range(16)]
         possible_mines = [0 for i in range(30) for i in range(16)]
@@ -453,6 +456,7 @@ def testing(field):
 
 
     testing(sieved_field)
+
 def reset():
     print('resetting')
 
@@ -461,6 +465,7 @@ def reset():
     pyautogui.hotkey('shift', 'f10')
 
 
+testing(field)
 '''import pyautogui
 from PIL import ImageGrab
 
@@ -485,7 +490,7 @@ while True:
     print(f"Koordynaty piksela: ({x}, {y})")
     print(f"Kolor piksela: {color}")'''
 
-testing(field)
+
 '''[['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '3', '2', '1', '2', '1', '1', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '3', '2', '1', '2', 'B', 'B', '1', ' ', ' ', ' ', '1', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '3', '2', 'B', '2', '2', '4', '4', '4', '2', '1', '1', '1', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', '2', '2', '2', 'B', 'B', 'B', '2', 'B', '2', '2', 'B', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', 'B', '1', '1', '2', '3', '2', '2', '2', 'B', '2', '1', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '3', '2', '1', ' ', ' ', ' ', ' ', ' ', '1', '2', '2', '1', '1', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '2', 'B', 'B', 'B', 'B', '3', 'B', '1', ' ', ' ', ' ', ' ', '1', '2', '2', '2', 'B', '3', '3', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '2', '2', '4', '4', '3', '2', '1', '1', ' ', '1', '2', '2', '2', 'B', 'B', '2', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '1', ' ', '1', 'B', '2', '2', '2', '1', ' ', '1', 'B', 'B', '3', '3', '2', '2', '2', '4', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '1', ' ', '1', '2', '3', 'B', 'B', '1', '1', '2', '3', '3', 'B', '2', '1', '2', 'B', '3', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '2', '1', '1', '2', 'B', '4', '2', '1', '1', 'B', '1', '1', '1', '3', 'B', '3', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '2', 'B', '1', '2', 'B', '2', ' ', ' ', '1', '1', '1', ' ', ' ', '2', 'B', '3', '2', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', '2', '1', '1', '1', '1', '1', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '1', '2', 'B', '1', '1', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B']]'''
 '''[['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', '1', '1', '1', '1', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '1', ' ', ' ', ' ', '1', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', '1', ' ', '1', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '1', '1', '2', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '4', '2', '2', 'B', '4', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B']]'''
 '''[['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', ' ', ' ', ' ', '1', 'B', '2', 'B', '2', '2', 'B', '1', ' ', '1', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', 'B', 'B', '2', ' ', ' ', ' ', '1', '1', '2', '2', 'B', '2', '1', '1', ' ', '2', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', '2', '2', '1', ' ', ' ', ' ', ' ', ' ', ' ', '1', '1', '1', ' ', '1', '2', '3', 'B', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '1', ' ', '1', '1', '1', '1', '1', '1', ' ', ' ', ' ', ' ', ' ', ' ', '2', 'B', 'B', '2', '2', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', ' ', '1', 'B', '1', '1', 'B', '1', ' ', ' ', ' ', '1', '1', '1', '3', 'B', '4', '1', '1', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', '1', '2', '1', '1', '1', '2', '2', '1', ' ', ' ', '1', 'B', '1', '2', 'B', '2', '1', '2', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '4', 'B', '3', '2', '2', '1', '1', 'B', '1', ' ', '1', '2', '2', '1', '1', '1', '1', '2', 'B', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '5', 'B', 'B', '1', '1', '1', '1', '1', '3', 'B', '2', '1', '2', '2', '1', '2', 'B', '4', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '3', '1', ' ', ' ', ' ', '2', 'B', 'B', '2', '2', 'B', 'B', '2', '2', '1', '2', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '1', ' ', ' ', ' ', ' ', '2', 'B', '3', '1', '2', 'B', '5', 'B', '3', '2', '3', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '1', ' ', ' ', '1', '1', '2', '2', '3', '2', '2', '1', '3', 'B', 'B', '2', 'B', 'B'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '2', ' ', ' ', '1', 'B', '1', '2', 'B', 'B', '2', '1', '3', '3', '3', '2', '2', '2'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '3', '2', '1', '2', '1', '1', '2', 'B', '3', '2', 'B', '2', 'B', '1', ' ', ' ', ' '], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '3', 'B', '1', ' ', ' ', '2', '2', '2', '1', '2', '3', '2', '1', ' ', ' ', ' '], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '3', '2', '1', '1', '3', 'B', '3', '1', '1', 'B', '1', ' ', ' ', ' ', ' '], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', '1', '1', '1', '1', ' ', ' ', ' ', ' ']]'''
@@ -512,4 +517,8 @@ B B B B B B B B B B B B B B B B B B B B M M       '''
 todo:
 zrobic cos takiego ze jest licznik min kory wyklucza rozwiazania ktore np maja wiecej min niz jest aktualnie,
 jesli min jest 99max, wiadoma jest pozycja 90, a sa rozwiazania ktore maja 10 min w sobie, od razu mozna je skreslic
+
+#make full_nums and nums to blank be callled be fore fun)_brutreforcer, so bruteforcer works on edited field and on smaller groups
+#bruteforcer cannot be recursive functrion, it needs to be called once and go back to normalm way of searching mines
+# you can make it return move so it just calls function like 'make move' and then moves forward with testing function
 '''
