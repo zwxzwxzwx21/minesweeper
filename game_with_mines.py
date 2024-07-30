@@ -102,7 +102,7 @@ def B_to_M(field, position_array, number_array):
         make_move((pos[0],pos[1]))
         #pyautogui.click(start_x + 7 + (pos[0]) * 16, start_y + 7 + (pos[1]) * 16)
         print(f'pressing button {pos[1]} {pos[0]}')
-    updated_field -= update_board()
+    updated_field = update_board()
     return updated_field
 #given an array it makes all numbs into ' '
 def nums_to_blank(field, pos):
