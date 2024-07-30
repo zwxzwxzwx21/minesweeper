@@ -63,6 +63,15 @@ def make_move(pos):
             pyautogui.click(15+pos[0]*16+8,100+pos[1]*16+8)
 
     pyautogui.click(15 + pos[0] * 16 + 8, 100 + pos[1] * 16 + 8)
+def make_move_no_delay(pos):
+    win.activate()
+
+    if pos != (15,8):
+
+            print('pressing at ',(15+pos[0]*16+8,100+pos[1]*16+8))
+            pyautogui.click(15+pos[0]*16+8,100+pos[1]*16+8)
+
+    pyautogui.click(15 + pos[0] * 16 + 8, 100 + pos[1] * 16 + 8)
 #using image recognition it determines where what should be
 def closest_color(pixel_color, colors):
     colors = np.array(colors)
@@ -99,7 +108,7 @@ def B_to_M(field, position_array, number_array):
     for row in field:
         print(' '.join(row))
     for pos in numb:
-        make_move((pos[0],pos[1]))
+        make_move_no_delay((pos[0],pos[1]))
         #pyautogui.click(start_x + 7 + (pos[0]) * 16, start_y + 7 + (pos[1]) * 16)
         print(f'pressing button {pos[1]} {pos[0]}')
     updated_field = update_board()
@@ -202,7 +211,7 @@ def irrelevant_b(field):
                 field[i][j] = ' '
 
     return field
-#removes numbers that already have mines around them discovered
+#returns positions of fill numbers
 def full_numbers(field):
     numbers = ['1', '2', '3', '4', '5', '6']
     pos = []
@@ -214,7 +223,7 @@ def full_numbers(field):
                 #print('found numbner at position ' + str(yy) + ',' + str(xx))
                 for x in range(-1, 2):
                     for y in range(-1, 2):
-                        if -1 < yy + 2 < 16 and -1 < xx + 2 < 30:
+                        if -1 < yy + y < 16 and -1 < xx + x < 30:
                             #print('past if statement 1')
                             if field[yy + y][xx + x] == 'M':
                                 print(f'found bomb at position ' + str(xx+x) + ',' + str(yy+y), f'for x ={x}, y={y}, yy={yy} xx={xx}')
@@ -284,7 +293,7 @@ def fun_bruteforcer(field, array, groups):
         for row in copy_field:
             print(' '.join(row))
 
-        if len(final_pos_of_b) > 14:
+        if len(final_pos_of_b) > 30:
             print('group too long, too much to compute, resetting')
             time.sleep(0.5)
             reset()
@@ -293,17 +302,30 @@ def fun_bruteforcer(field, array, groups):
 
     print('positions in pos tosdjfgkljsfn')
 
-
-
+    import sys
     combinations = list(itertools.product(['B', 'M'], repeat=len(final_pos_of_b)))
-
+    total_combinations = len(combinations)
+    # Starting time
+    start_time = time.time()
     z = 0
     for combination in combinations:
-
-        #print(z)                              ############################################################
+        # Calculate percentage completed
+        percentage_completed = (z / total_combinations) * 100
+        # Calculate elapsed time and estimated time remaining
+        elapsed_time = time.time() - start_time
+        if z > 0:  # Ensure not dividing by zero
+            time_per_combination = elapsed_time / z
+            estimated_time_remaining = (total_combinations - z) * time_per_combination
+        else:
+            estimated_time_remaining = 0
+        # Print progress details
+        print(
+            f'\r{z + 1}/{total_combinations} ({percentage_completed:.1f}%) - ETA: {estimated_time_remaining:.2f} seconds',
+            end='', flush=True)
+        z += 1
         #print(field,'field') this one good
-
-        new_field = copy.deepcopy(field)
+        new_field = copy.deepcopy(new_board)
+        #new_field = copy.deepcopy(field) ##might be bad decision commenting it out,
 
 
         for pos, value in zip(final_pos_of_b, combination):
@@ -391,7 +413,7 @@ def validate_boards(board_array,pos): # position on numbers to check
         if is_good:
             good_boards.append(board)
     print(len(good_boards), ' valid')
-    if len(good_boards) <18:
+    if len(good_boards) <30: #lenght groupp
         for numb,board in enumerate(good_boards):
             print(numb)
             for row in board:
@@ -477,6 +499,22 @@ def testing(field):
                 make_move((j,i))'''
     ##bruteforcing##
 
+
+
+
+    #edit field board to look closer to sieved
+
+    full_numbs = full_numbers(field)
+    f_no_numbs = nums_to_blank(field,full_numbs)
+    position_of_mines = [] #(x,y)
+    #this is last
+    for i in range(16):
+        for j in range(30):
+            if f_no_numbs[i][j] == 'M':
+                f_no_numbs[i][j] = 'B'
+                pos = (j,i)
+                position_of_mines.append(pos)
+    field = copy.deepcopy(f_no_numbs)
     # Check if there are no more moves and make a random press
     print('###check if need to bruteforce###')
     print('sieved field')
