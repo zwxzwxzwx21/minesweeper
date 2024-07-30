@@ -259,8 +259,15 @@ def full_numbers(field):
 #the
 def fun_bruteforcer(field, array, groups):
     global bomb_pos
+    print(bomb_pos,'editing bruteforcer bomb placement')
     for pos in bomb_pos:
-        field[pos[0]][pos[1]] == 'M'
+        if field[pos[0]][pos[1]] == 'B':
+            field[pos[0]][pos[1]] = 'M'
+    for row in field:
+        print(' '.join(row))
+    if len(bomb_pos) > 0:
+        time.sleep(1)
+    print('edidint breutefrocer with bomb_pos array finished')
     copy_field = copy.deepcopy(field)
     print(array, 'array in funbruteforcer')
     print('fun bruteforcer starts')
@@ -319,7 +326,8 @@ def fun_bruteforcer(field, array, groups):
 
         if len(final_pos_of_b) > 20:
             print('group too long, too much to compute, reset me ')
-            time.sleep(999)
+            reset()
+            #time.sleep(999)
 
         groups_of_b.append([final_pos_of_b])
 
