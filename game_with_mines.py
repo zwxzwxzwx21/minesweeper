@@ -8,6 +8,10 @@ import random
 import pyautogui
 import itertools
 import copy
+
+
+global bomb_pos
+bomb_pos = []
 '''
 
 def get_pixel_color_and_position():
@@ -34,6 +38,19 @@ windows = pyautogui.getWindowsWithTitle('Minesweeper')
 if windows:
     for win in windows:
         win.close()
+#dont care what it does xdxd
+def progress_bar(percentage, bar_length=30):
+    bar = ''
+    filled_length = int(bar_length * percentage // 100)
+    for i in range(bar_length):
+        if i < filled_length:
+            # Create a gradient from green to red
+            red = int((255 * i) / bar_length)
+            green = 255 - red
+            bar += f'\033[38;2;{red};{green};0m█\033[0m'
+        else:
+            bar += ' '
+    return f'[{bar}]'
 
 # Launch a new instance of Minesweeper
 mouse_track = True
@@ -58,14 +75,18 @@ def make_move(pos):
     time.sleep(0.5)
     if pos != (15,8):
         a = input(f'trying to press at {pos}, continue?')
+        pyautogui.moveTo(2000,1500)
         if a == 'y':
             print('pressing at ',(15+pos[0]*16+8,100+pos[1]*16+8))
             pyautogui.click(15+pos[0]*16+8,100+pos[1]*16+8)
 
     pyautogui.click(15 + pos[0] * 16 + 8, 100 + pos[1] * 16 + 8)
-def make_move_no_delay(pos):
+def make_move_no_delay(pos,line):
+    global bomb_pos
+    print(f' called by {line}')
     win.activate()
-
+    if (pos[1],pos[0]) in bomb_pos:
+        print(f'{(pos[1],pos[0])} in bomb_pos: {bomb_pos}')
     if pos != (15,8):
 
             print('pressing at ',(15+pos[0]*16+8,100+pos[1]*16+8))
@@ -108,7 +129,7 @@ def B_to_M(field, position_array, number_array):
     for row in field:
         print(' '.join(row))
     for pos in numb:
-        make_move_no_delay((pos[0],pos[1]))
+        make_move_no_delay((pos[0],pos[1]),'B_TO_M')
         #pyautogui.click(start_x + 7 + (pos[0]) * 16, start_y + 7 + (pos[1]) * 16)
         print(f'pressing button {pos[1]} {pos[0]}')
     updated_field = update_board()
@@ -132,7 +153,7 @@ def divide_in_groups(positions):
         added_to_group = False
         for group in groups:
             for group_pos in group:
-                if abs(pos[0] - group_pos[0]) <= 2 and abs(pos[1] - group_pos[1]) <= 2:
+                if abs(pos[0] - group_pos[0]) <= 1 and abs(pos[1] - group_pos[1]) <= 1:
                     group.append(pos)
                     added_to_group = True
                     break
@@ -153,6 +174,7 @@ def pos_of_numbers(field):
     return pos
 #takes field and pos of ALL the number position
 def find_mines(field, pos_array):
+    global bomb_pos
 
     print('find_mines field:')
     pos = [] # array that will show position of buttons that have mines 100%
@@ -175,6 +197,7 @@ def find_mines(field, pos_array):
                             move = ((position[1] + j), (position[0] + i))
                             #position of 100% bomb
                             pos.append(move)
+                            bomb_pos.append(move)
                             #position of full number
                             move2 = ((position[1]), (position[0]))
                             full_nums.append(move2)
@@ -200,7 +223,7 @@ def irrelevant_b(field):
             if field[i][j] in numbers:
                 for x in range(-1, 2):
                     for y in range(-1, 2):
-                        if -1 < i + 2 < 16 and -1 < j + y < 30:
+                        if -1 < i + x < 16 and -1 < j + y < 30:
                             if field[i + x][j + y] == 'B':
                                 p = (i + x, j + y)
                                 pos.append(p)
@@ -235,6 +258,9 @@ def full_numbers(field):
     return pos  ## WORKING
 #the
 def fun_bruteforcer(field, array, groups):
+    global bomb_pos
+    for pos in bomb_pos:
+        field[pos[0]][pos[1]] == 'M'
     copy_field = copy.deepcopy(field)
     print(array, 'array in funbruteforcer')
     print('fun bruteforcer starts')
@@ -270,11 +296,13 @@ def fun_bruteforcer(field, array, groups):
         print(pos_of_b, 'pos of b bbb')
         for posit in pos_of_b:
             print(posit, 'current pos bruteforcing')
-            if field[posit[1]][posit[0]] == 'B': # posit[1] out of range cuz no B generates?
-                print('found b at pos ', posit[0], ' ', posit[1])
-                if posit not in final_pos_of_b:
-                    final_pos_of_b.append(posit)
-                    print('appending', posit)
+            if -1 < posit[1] < 16 and -1 < posit[0] < 30:
+                if field[posit[1]][posit[0]] == 'B': # posit[1] out of range cuz no B generates?
+                    #almost 100% sure that posit[1] out ofrange cuz it could go 15+1
+                    print('found b at pos ', posit[0], ' ', posit[1])
+                    if posit not in final_pos_of_b:
+                        final_pos_of_b.append(posit)
+                        print('appending', posit)
 
         print(final_pos_of_b, 'final pos b')
         test_field = copy.deepcopy(field)
@@ -289,14 +317,9 @@ def fun_bruteforcer(field, array, groups):
             print(' '.join(row))
         print('end of test')
 
-        print('edited field for group')
-        for row in copy_field:
-            print(' '.join(row))
-
-        if len(final_pos_of_b) > 30:
-            print('group too long, too much to compute, resetting')
-            time.sleep(0.5)
-            reset()
+        if len(final_pos_of_b) > 20:
+            print('group too long, too much to compute, reset me ')
+            time.sleep(999)
 
         groups_of_b.append([final_pos_of_b])
 
@@ -333,6 +356,7 @@ def fun_bruteforcer(field, array, groups):
                 new_field[pos[1]][pos[0]] = value
 
         all_boards.append(new_field)
+    print()
     print('validating',array)
     booard = validate_boards(all_boards,array)
     percentage_field  = check_percent(booard)
@@ -377,7 +401,9 @@ def check_percent(boards):
 #checks if created by a bruteforcer board is valid or no
 def validate_boards(board_array,pos): # position on numbers to check
     good_boards = []
-
+    print('test array')
+    for row in board_array[0]:
+        print(' '.join(row))
     numbers = ['1', '2', '3', '4', '5', '6']
     print(len(board_array), 'boards')
     '''for board in board_array:
@@ -413,7 +439,7 @@ def validate_boards(board_array,pos): # position on numbers to check
         if is_good:
             good_boards.append(board)
     print(len(good_boards), ' valid')
-    if len(good_boards) <30: #lenght groupp
+    if len(good_boards) <21: #lenght groupp
         for numb,board in enumerate(good_boards):
             print(numb)
             for row in board:
@@ -423,7 +449,7 @@ def validate_boards(board_array,pos): # position on numbers to check
     return good_boards
 
 def testing(field):
-    global mouse_track
+    global mouse_track,bomb_pos
 
     image_taken = 0
     colors = [(192, 192, 192), (0, 0, 255), (0, 128, 0), (255, 0, 0), (0, 0, 128), (128, 0, 0), (0, 128, 128)]
@@ -435,7 +461,7 @@ def testing(field):
     pyautogui.PAUSE = 0
     #pyautogui.click(start_x + 16 * 15 + 7, start_y + 8 * 16 + 7)
     if mouse_track == True:
-        make_move((15,8))
+        make_move_no_delay((15,8),'TESTING MOUSE TRACK')
     screen = ImageGrab.grab()   #image grav one pixel insteead of entire screen
     #image recognition that checks the board state
 #region
@@ -506,14 +532,14 @@ def testing(field):
 
     full_numbs = full_numbers(field)
     f_no_numbs = nums_to_blank(field,full_numbs)
-    position_of_mines = [] #(x,y)
+    #(x,y)
     #this is last
     for i in range(16):
         for j in range(30):
             if f_no_numbs[i][j] == 'M':
                 f_no_numbs[i][j] = 'B'
-                pos = (j,i)
-                position_of_mines.append(pos)
+                pos = (i,j)
+                bomb_pos.append(pos) #(y,x)
     field = copy.deepcopy(f_no_numbs)
     # Check if there are no more moves and make a random press
     print('###check if need to bruteforce###')
@@ -554,7 +580,7 @@ def testing(field):
             print((field_no_B, group, groups), 'stuff to copy')
 
             bruteforced_move = fun_bruteforcer(field_no_B, group,groups)
-            make_move(bruteforced_move)
+            make_move_no_delay(bruteforced_move,'BRUTEFORCER MOVE')
         #sieved_field = random_press(sieved_field)
 
         if image_taken < 479:
@@ -603,6 +629,9 @@ def update_board():
     return final_field
 
 def reset():
+    pyautogui.moveTo(20, 700)
+    pyautogui.click()
+    pyautogui.hotkey('shift', 'f10')
     a = input('reset? y/n')
     if a == 'y':
         print('resetting')
